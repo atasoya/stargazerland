@@ -20,6 +20,46 @@ body.is-starting canvas {
   transform: scale(1.025);
 }
 
+.game-controls {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 10px;
+  z-index: 15;
+}
+
+.game-controls[hidden] {
+  display: none;
+}
+
+.game-controls button {
+  border: 1px solid oklch(36% 0.05 135 / 0.24);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: oklch(96% 0.025 105 / 0.9);
+  box-shadow: 0 10px 30px oklch(32% 0.05 150 / 0.16), inset 0 1px 0 oklch(100% 0.01 100 / 0.65);
+  color: oklch(27% 0.045 132);
+  cursor: pointer;
+  font-family: Optima, Candara, "Noto Sans", "Aptos", system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), filter 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.game-controls button:hover:not(:disabled),
+.game-controls button:focus-visible:not(:disabled) {
+  filter: saturate(1.05) brightness(0.98);
+  box-shadow: 0 14px 34px oklch(32% 0.05 150 / 0.2), inset 0 1px 0 oklch(100% 0.01 100 / 0.72);
+  transform: translateY(-1px);
+}
+
+.game-controls button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 .start-screen {
   position: fixed;
   inset: 0;
