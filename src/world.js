@@ -8,8 +8,11 @@ import {
 } from "./config.js";
 import { getGrassFrame } from "./grass.js";
 import { findFirstLandTile } from "./islands.js";
+import { createPopulation, resizePopulation } from "./population.js";
 
-export function createWorld(k, islandMap) {
+export function createWorld(k, islandWorld) {
+  const islandMap = Array.isArray(islandWorld) ? islandWorld : islandWorld.map;
+  const islands = Array.isArray(islandWorld) ? [] : islandWorld.islands;
   const waterTiles = [];
   const grassTiles = [];
   const layout = createLayout(k);
@@ -17,13 +20,19 @@ export function createWorld(k, islandMap) {
   let mapY = Math.round((k.height() - layout.mapHeight) / 2);
 
   const isLand = (col, row) => islandMap[row]?.[col] === "#";
+  const getTilePos = (col, row) => ({
+    x: mapX + col * layout.cellSize,
+    y: mapY + row * layout.cellSize,
+  });
 
   for (let row = 0; row < islandMap.length; row++) {
     for (let col = 0; col < islandMap[row].length; col++) {
       if (!isLand(col, row)) continue;
 
+      const position = getTilePos(col, row);
+
       const tile = k.add([
-        k.pos(mapX + col * layout.cellSize, mapY + row * layout.cellSize),
+        k.pos(position.x, position.y),
         k.sprite("grass", {
           frame: getGrassFrame(isLand, col, row),
         }),
@@ -36,14 +45,17 @@ export function createWorld(k, islandMap) {
   }
 
   const playerStart = findFirstLandTile(islandMap);
+  const playerPosition = getTilePos(playerStart.col, playerStart.row);
   const player = k.add([
-    k.pos(mapX + playerStart.col * layout.cellSize, mapY + playerStart.row * layout.cellSize),
+    k.pos(playerPosition.x, playerPosition.y),
     k.sprite("character"),
     k.scale(2),
     k.z(1),
   ]);
 
   player.play("idleFront");
+
+  const people = createPopulation(k, islands, layout, getTilePos);
 
   function rebuildWater() {
     while (waterTiles.length > 0) {
@@ -78,14 +90,17 @@ export function createWorld(k, islandMap) {
     mapY = Math.round((k.height() - layout.mapHeight) / 2);
 
     for (const { tile, col, row } of grassTiles) {
-      tile.pos.x = mapX + col * layout.cellSize;
-      tile.pos.y = mapY + row * layout.cellSize;
+      const position = getTilePos(col, row);
+
+      tile.pos.x = position.x;
+      tile.pos.y = position.y;
       tile.scaleTo(layout.renderScale);
     }
 
     player.pos.x = mapX + playerCol * layout.cellSize;
     player.pos.y = mapY + playerRow * layout.cellSize;
     player.scaleTo(Math.max(1, (layout.renderScale / BASE_SCALE) * 2));
+    resizePopulation(people, layout, getTilePos);
   }
 
   k.onResize(resizeWorld);

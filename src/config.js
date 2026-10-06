@@ -4,6 +4,7 @@ export const MIN_RENDER_SCALE = 0.75;
 export const MAP_PADDING = 24;
 export const MAP_COLS = 25;
 export const MAP_ROWS = 12;
+export const POPULATION_SIZE_RATIO = 8;
 
 export const islandSizes = {
   island1: 40,

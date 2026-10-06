@@ -1,4 +1,9 @@
-import { MAP_COLS, MAP_ROWS, islandSizes } from "./config.js";
+import {
+  MAP_COLS,
+  MAP_ROWS,
+  POPULATION_SIZE_RATIO,
+  islandSizes,
+} from "./config.js";
 
 function cellKey(col, row) {
   return `${col},${row}`;
@@ -109,27 +114,54 @@ function generateIslandCells(relativeSize, islandIndex, islandCount, occupied) {
 }
 
 export function generateIslandMap(sizesByIsland = islandSizes) {
+  return generateIslandWorld(sizesByIsland).map;
+}
+
+export function generateIslandWorld(sizesByIsland = islandSizes) {
   const rows = Array.from({ length: MAP_ROWS }, () =>
     Array(MAP_COLS).fill("."),
   );
   const occupied = new Set();
-  const sizes = Object.values(sizesByIsland);
+  const entries = Object.entries(sizesByIsland);
+  const sizes = entries.map(([, relativeSize]) => relativeSize);
+  const islands = [];
 
-  sizes.forEach((relativeSize, islandIndex) => {
+  entries.forEach(([name, relativeSize], islandIndex) => {
     const cells = generateIslandCells(
       relativeSize,
       islandIndex,
       sizes.length,
       occupied,
     );
+    const tiles = [];
 
     for (const key of cells) {
       const [col, row] = key.split(",").map(Number);
       rows[row][col] = "#";
+      tiles.push({ col, row });
     }
+
+    islands.push({
+      name,
+      relativeSize,
+      tiles,
+      population: getIslandPopulation(relativeSize, tiles.length),
+    });
   });
 
-  return rows.map((row) => row.join(""));
+  return {
+    map: rows.map((row) => row.join("")),
+    islands,
+  };
+}
+
+function getIslandPopulation(relativeSize, tileCount) {
+  if (tileCount === 0) return 0;
+
+  return Math.min(
+    tileCount,
+    Math.max(1, Math.round(relativeSize / POPULATION_SIZE_RATIO)),
+  );
 }
 
 export function findFirstLandTile(islandMap) {

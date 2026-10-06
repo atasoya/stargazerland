@@ -1,6 +1,6 @@
 import kaplay from "kaplay";
 import { loadAssets } from "./assets.js";
-import { generateIslandMap } from "./islands.js";
+import { generateIslandWorld } from "./islands.js";
 import { createWorld } from "./world.js";
 
 const k = kaplay({
@@ -8,4 +8,4 @@ const k = kaplay({
 });
 
 loadAssets(k);
-createWorld(k, generateIslandMap());
+createWorld(k, generateIslandWorld());
