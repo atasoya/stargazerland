@@ -25,12 +25,12 @@ showStart();
 
 function showStart() {
   controls.hide();
-  replaceWorld(generateIslandWorld(previewIslandSizes));
+  replaceWorld(generateResponsiveWorld(previewIslandSizes));
 
   showStartScreen(async (githubUsername) => {
     const repoIslandSizes = await fetchRepoIslandSizes(githubUsername);
 
-    replaceWorld(generateIslandWorld(repoIslandSizes));
+    replaceWorld(generateResponsiveWorld(repoIslandSizes));
     controls.show();
   });
 }
@@ -38,4 +38,14 @@ function showStart() {
 function replaceWorld(islandWorld) {
   currentWorld?.destroy();
   currentWorld = createWorld(k, islandWorld);
+}
+
+function generateResponsiveWorld(sizesByIsland) {
+  return generateIslandWorld(sizesByIsland, {
+    transpose: isPortraitViewport(),
+  });
+}
+
+function isPortraitViewport() {
+  return globalThis.innerHeight > globalThis.innerWidth;
 }

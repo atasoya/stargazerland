@@ -1,8 +1,6 @@
 import {
   BASE_SCALE,
-  MAP_COLS,
   MAP_PADDING,
-  MAP_ROWS,
   MIN_RENDER_SCALE,
   TILE_SIZE,
 } from "./config.js";
@@ -16,7 +14,9 @@ export function createWorld(k, islandWorld) {
   const waterTiles = [];
   const grassTiles = [];
   const repoUi = [];
-  const layout = createLayout(k);
+  const mapCols = islandMap[0]?.length ?? 0;
+  const mapRows = islandMap.length;
+  const layout = createLayout(k, mapCols, mapRows);
   let mapX = Math.round((k.width() - layout.mapWidth) / 2);
   let mapY = Math.round((k.height() - layout.mapHeight) / 2);
 
@@ -105,7 +105,7 @@ export function createWorld(k, islandWorld) {
     const playerCol = (player.pos.x - mapX) / layout.cellSize;
     const playerRow = (player.pos.y - mapY) / layout.cellSize;
 
-    updateLayout(k, layout);
+    updateLayout(k, layout, mapCols, mapRows);
     rebuildWater();
 
     mapX = Math.round((k.width() - layout.mapWidth) / 2);
@@ -302,30 +302,30 @@ function easeOutQuart(value) {
   return 1 - (1 - value) ** 4;
 }
 
-function createLayout(k) {
+function createLayout(k, mapCols, mapRows) {
   const layout = {
     renderScale: BASE_SCALE,
     cellSize: TILE_SIZE * BASE_SCALE,
-    mapWidth: MAP_COLS * TILE_SIZE * BASE_SCALE,
-    mapHeight: MAP_ROWS * TILE_SIZE * BASE_SCALE,
+    mapWidth: mapCols * TILE_SIZE * BASE_SCALE,
+    mapHeight: mapRows * TILE_SIZE * BASE_SCALE,
   };
 
-  updateLayout(k, layout);
+  updateLayout(k, layout, mapCols, mapRows);
 
   return layout;
 }
 
-function updateLayout(k, layout) {
+function updateLayout(k, layout, mapCols, mapRows) {
   const availableWidth = Math.max(TILE_SIZE, k.width() - MAP_PADDING * 2);
   const availableHeight = Math.max(TILE_SIZE, k.height() - MAP_PADDING * 2);
   const scaleToFit = Math.min(
     BASE_SCALE,
-    availableWidth / (MAP_COLS * TILE_SIZE),
-    availableHeight / (MAP_ROWS * TILE_SIZE),
+    availableWidth / (mapCols * TILE_SIZE),
+    availableHeight / (mapRows * TILE_SIZE),
   );
 
   layout.renderScale = Math.max(MIN_RENDER_SCALE, scaleToFit);
   layout.cellSize = TILE_SIZE * layout.renderScale;
-  layout.mapWidth = MAP_COLS * layout.cellSize;
-  layout.mapHeight = MAP_ROWS * layout.cellSize;
+  layout.mapWidth = mapCols * layout.cellSize;
+  layout.mapHeight = mapRows * layout.cellSize;
 }

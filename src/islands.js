@@ -219,10 +219,27 @@ export function generateIslandWorld(sizesByIsland = islandSizes, options = {}) {
     });
   });
 
-  return {
+  const world = {
     map: rows.map((row) => row.join("")),
     islands,
   };
+
+  return options.transpose ? transposeIslandWorld(world) : world;
+}
+
+function transposeIslandWorld(world) {
+  const sourceRows = world.map;
+  const rowCount = sourceRows.length;
+  const colCount = sourceRows[0]?.length ?? 0;
+  const map = Array.from({ length: colCount }, (_, row) =>
+    Array.from({ length: rowCount }, (_, col) => sourceRows[col][row]).join(""),
+  );
+  const islands = world.islands.map((island) => ({
+    ...island,
+    tiles: island.tiles.map((tile) => ({ col: tile.row, row: tile.col })),
+  }));
+
+  return { map, islands };
 }
 
 function getIslandConfig(value) {
