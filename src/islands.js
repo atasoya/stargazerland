@@ -1,6 +1,7 @@
 import {
   MAP_COLS,
   MAP_ROWS,
+  MIN_ISLAND_GAP,
   POPULATION_SIZE_RATIO,
   islandSizes,
 } from "./config.js";
@@ -28,7 +29,7 @@ function getIslandAspect(islandIndex) {
   return 0.95 + ((islandIndex * 7) % 6) * 0.1;
 }
 
-function getIslandOrigin(islandIndex, islandCount, occupied) {
+function getIslandOrigin(islandIndex, islandCount, occupied, blocked) {
   const angle = islandIndex * Math.PI * (3 - Math.sqrt(5));
   const radius =
     islandCount <= 1 ? 0 : Math.sqrt((islandIndex + 0.5) / islandCount);
@@ -50,7 +51,7 @@ function getIslandOrigin(islandIndex, islandCount, occupied) {
     for (let col = 0; col < MAP_COLS; col++) {
       const key = cellKey(col, row);
 
-      if (occupied.has(key)) continue;
+      if (occupied.has(key) || blocked.has(key)) continue;
 
       candidates.push({
         col,
@@ -62,7 +63,24 @@ function getIslandOrigin(islandIndex, islandCount, occupied) {
 
   candidates.sort((a, b) => a.score - b.score);
 
-  return candidates[0] ?? origin;
+  return candidates[0] ?? null;
+}
+
+function blockIslandRing(cells, blocked, gap) {
+  for (const key of cells) {
+    const [col, row] = key.split(",").map(Number);
+
+    for (let rowOffset = -gap; rowOffset <= gap; rowOffset++) {
+      for (let colOffset = -gap; colOffset <= gap; colOffset++) {
+        const nextCol = col + colOffset;
+        const nextRow = row + rowOffset;
+
+        if (isInMap(nextCol, nextRow)) {
+          blocked.add(cellKey(nextCol, nextRow));
+        }
+      }
+    }
+  }
 }
 
 function scoreIslandCell(col, row, origin, radiusX, radiusY, islandIndex) {
@@ -74,40 +92,76 @@ function scoreIslandCell(col, row, origin, radiusX, radiusY, islandIndex) {
   return ovalDistance + edgeWobble;
 }
 
-function generateIslandCells(relativeSize, islandIndex, islandCount, occupied) {
-  const origin = getIslandOrigin(islandIndex, islandCount, occupied);
+function generateIslandCells(
+  relativeSize,
+  islandIndex,
+  islandCount,
+  occupied,
+  blocked,
+) {
+  const origin = getIslandOrigin(islandIndex, islandCount, occupied, blocked);
   const targetSize = Math.max(1, Math.round(relativeSize));
   const cells = new Set();
-  const candidates = [];
 
   if (!origin || !isInMap(origin.col, origin.row)) return cells;
 
   const aspect = getIslandAspect(islandIndex);
   const radiusY = Math.max(1, Math.sqrt(targetSize / (Math.PI * aspect)));
   const radiusX = radiusY * aspect;
+  const originKey = cellKey(origin.col, origin.row);
+  const seen = new Set([originKey]);
+  const frontier = [originKey];
 
-  for (let row = 0; row < MAP_ROWS; row++) {
-    for (let col = 0; col < MAP_COLS; col++) {
-      const key = cellKey(col, row);
+  cells.add(originKey);
 
-      if (occupied.has(key)) continue;
+  while (cells.size < targetSize && frontier.length > 0) {
+    let bestIndex = 0;
+    let bestScore = Infinity;
 
-      candidates.push({
+    for (let index = 0; index < frontier.length; index++) {
+      const [col, row] = frontier[index].split(",").map(Number);
+      const score = scoreIslandCell(
         col,
         row,
-        key,
-        score: scoreIslandCell(col, row, origin, radiusX, radiusY, islandIndex),
-      });
+        origin,
+        radiusX,
+        radiusY,
+        islandIndex,
+      );
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+
+    const selectedKey = frontier.splice(bestIndex, 1)[0];
+    const [col, row] = selectedKey.split(",").map(Number);
+
+    cells.add(selectedKey);
+
+    for (const [colOffset, rowOffset] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const nextCol = col + colOffset;
+      const nextRow = row + rowOffset;
+
+      if (!isInMap(nextCol, nextRow)) continue;
+
+      const key = cellKey(nextCol, nextRow);
+
+      if (seen.has(key) || occupied.has(key) || blocked.has(key)) continue;
+
+      seen.add(key);
+      frontier.push(key);
     }
   }
 
-  candidates.sort((a, b) => a.score - b.score);
-
-  for (const candidate of candidates) {
-    if (cells.size >= targetSize) break;
-
-    cells.add(candidate.key);
-    occupied.add(candidate.key);
+  for (const key of cells) {
+    occupied.add(key);
   }
 
   return cells;
@@ -117,21 +171,28 @@ export function generateIslandMap(sizesByIsland = islandSizes) {
   return generateIslandWorld(sizesByIsland).map;
 }
 
-export function generateIslandWorld(sizesByIsland = islandSizes) {
+export function generateIslandWorld(sizesByIsland = islandSizes, options = {}) {
+  const gap = options.gap ?? MIN_ISLAND_GAP;
   const rows = Array.from({ length: MAP_ROWS }, () =>
     Array(MAP_COLS).fill("."),
   );
   const occupied = new Set();
-  const entries = Object.entries(sizesByIsland);
-  const sizes = entries.map(([, relativeSize]) => relativeSize);
+  const blocked = new Set();
+  const entries = Object.entries(sizesByIsland).map(([name, value]) => [
+    name,
+    getIslandConfig(value),
+  ]);
+  const sizes = entries.map(([, island]) => island.relativeSize);
   const islands = [];
 
-  entries.forEach(([name, relativeSize], islandIndex) => {
+  entries.forEach(([name, island], islandIndex) => {
+    const { relativeSize } = island;
     const cells = generateIslandCells(
       relativeSize,
       islandIndex,
       sizes.length,
       occupied,
+      blocked,
     );
     const tiles = [];
 
@@ -141,11 +202,20 @@ export function generateIslandWorld(sizesByIsland = islandSizes) {
       tiles.push({ col, row });
     }
 
+    if (cells.size > 0) {
+      blockIslandRing(cells, blocked, gap);
+    }
+
     islands.push({
       name,
+      url: island.url,
       relativeSize,
       tiles,
-      population: getIslandPopulation(relativeSize, tiles.length),
+      population: getIslandPopulation(
+        relativeSize,
+        tiles.length,
+        island.population,
+      ),
     });
   });
 
@@ -155,8 +225,24 @@ export function generateIslandWorld(sizesByIsland = islandSizes) {
   };
 }
 
-function getIslandPopulation(relativeSize, tileCount) {
+function getIslandConfig(value) {
+  if (typeof value === "number") {
+    return { relativeSize: value };
+  }
+
+  return {
+    relativeSize: value.relativeSize,
+    population: value.population,
+    url: value.url,
+  };
+}
+
+function getIslandPopulation(relativeSize, tileCount, explicitPopulation) {
   if (tileCount === 0) return 0;
+
+  if (explicitPopulation !== undefined) {
+    return Math.max(0, Math.round(explicitPopulation));
+  }
 
   return Math.min(
     tileCount,

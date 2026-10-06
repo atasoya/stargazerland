@@ -48,16 +48,21 @@ const populationSpecs = [
 export function createPopulation(k, islands, layout, getTilePos) {
   const people = islands.flatMap((island, islandIndex) => {
     const tiles = [...island.tiles].sort((a, b) => a.row - b.row || a.col - b.col);
-    const used = new Set();
     const people = [];
 
     for (let personIndex = 0; personIndex < island.population; personIndex++) {
-      const tile = pickPopulationTile(tiles, used, islandIndex, personIndex);
+      const tile = pickPopulationTile(tiles, islandIndex, personIndex);
 
       if (!tile) continue;
 
       const spec = pickPopulationSpec(islandIndex, personIndex);
-      const position = getCharacterPos(spec, layout, getTilePos(tile.col, tile.row));
+      const position = getCharacterPos(
+        spec,
+        layout,
+        getTilePos(tile.col, tile.row),
+        islandIndex,
+        personIndex,
+      );
       const character = k.add([
         k.pos(position.x, position.y),
         k.sprite(spec.sprite, getSpriteSize(spec, layout)),
@@ -71,11 +76,20 @@ export function createPopulation(k, islands, layout, getTilePos) {
     return people;
   });
 
-  k.onUpdate(() => {
+  const updateEvent = k.onUpdate(() => {
     animatePopulation(people, layout, getTilePos, k.time());
   });
 
-  return people;
+  return {
+    people,
+    destroy() {
+      updateEvent?.cancel?.();
+
+      for (const { character } of people) {
+        character.destroy();
+      }
+    },
+  };
 }
 
 export function resizePopulation(people, layout, getTilePos) {
@@ -87,7 +101,13 @@ export function resizePopulation(people, layout, getTilePos) {
 function animatePopulation(people, layout, getTilePos, time) {
   for (const person of people) {
     const { character, col, row, spec, islandIndex, personIndex } = person;
-    const position = getCharacterPos(spec, layout, getTilePos(col, row));
+    const position = getCharacterPos(
+      spec,
+      layout,
+      getTilePos(col, row),
+      islandIndex,
+      personIndex,
+    );
     const size = getSpriteSize(spec, layout);
     const seed = islandIndex * 97 + personIndex * 37;
     const cycle = 2.2 + seededUnit(seed, 1) * 2.4;
@@ -114,30 +134,24 @@ function animatePopulation(people, layout, getTilePos, time) {
 }
 
 function resetCharacter(person, layout, getTilePos) {
-  const { character, col, row, spec } = person;
-  const position = getCharacterPos(spec, layout, getTilePos(col, row));
+  const { character, col, row, spec, islandIndex, personIndex } = person;
+  const position = getCharacterPos(
+    spec,
+    layout,
+    getTilePos(col, row),
+    islandIndex,
+    personIndex,
+  );
 
   character.pos.x = position.x;
   character.pos.y = position.y;
   setSpriteSize(character, spec, layout);
 }
 
-function pickPopulationTile(tiles, used, islandIndex, personIndex) {
+function pickPopulationTile(tiles, islandIndex, personIndex) {
   if (tiles.length === 0) return null;
 
-  for (let attempt = 0; attempt < tiles.length; attempt++) {
-    const index = seededIndex(islandIndex, personIndex, attempt, tiles.length);
-    const tile = tiles[index];
-    const key = `${tile.col},${tile.row}`;
-
-    if (used.has(key)) continue;
-
-    used.add(key);
-
-    return tile;
-  }
-
-  return null;
+  return tiles[seededIndex(islandIndex, personIndex, 0, tiles.length)];
 }
 
 function seededIndex(islandIndex, personIndex, attempt, length) {
@@ -158,12 +172,23 @@ function pickPopulationSpec(islandIndex, personIndex) {
   return populationSpecs[index];
 }
 
-function getCharacterPos(spec, layout, tilePos) {
+function getCharacterPos(spec, layout, tilePos, islandIndex, personIndex) {
   const { width, height } = getSpriteSize(spec, layout);
+  const offset = getCharacterOffset(layout, islandIndex, personIndex);
 
   return {
-    x: tilePos.x + (layout.cellSize - width) / 2,
-    y: tilePos.y + layout.cellSize - height,
+    x: tilePos.x + (layout.cellSize - width) / 2 + offset.x,
+    y: tilePos.y + layout.cellSize - height + offset.y,
+  };
+}
+
+function getCharacterOffset(layout, islandIndex, personIndex) {
+  const seed = islandIndex * 97 + personIndex * 37;
+  const spread = layout.cellSize * 0.22;
+
+  return {
+    x: (seededUnit(seed, 5) - 0.5) * spread,
+    y: (seededUnit(seed, 6) - 0.5) * spread * 0.55,
   };
 }
 
