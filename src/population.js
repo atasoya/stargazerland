@@ -46,22 +46,23 @@ const populationSpecs = [
 ];
 
 export function createPopulation(k, islands, layout, getTilePos) {
-  const people = islands.flatMap((island, islandIndex) => {
+  const people = islands.flatMap((island) => {
     const tiles = [...island.tiles].sort((a, b) => a.row - b.row || a.col - b.col);
     const people = [];
 
     for (let personIndex = 0; personIndex < island.population; personIndex++) {
-      const tile = pickPopulationTile(tiles, islandIndex, personIndex);
+      const tile = pickPopulationTile(tiles);
 
       if (!tile) continue;
 
-      const spec = pickPopulationSpec(islandIndex, personIndex);
+      const spec = pickPopulationSpec();
+      const offset = pickCharacterOffset();
+      const motionSeed = Math.random() * 10000;
       const position = getCharacterPos(
         spec,
         layout,
         getTilePos(tile.col, tile.row),
-        islandIndex,
-        personIndex,
+        offset,
       );
       const character = k.add([
         k.pos(position.x, position.y),
@@ -70,7 +71,7 @@ export function createPopulation(k, islands, layout, getTilePos) {
       ]);
 
       character.play(spec.animation);
-      people.push({ character, col: tile.col, row: tile.row, spec, islandIndex, personIndex });
+      people.push({ character, col: tile.col, row: tile.row, spec, offset, motionSeed });
     }
 
     return people;
@@ -100,18 +101,16 @@ export function resizePopulation(people, layout, getTilePos) {
 
 function animatePopulation(people, layout, getTilePos, time) {
   for (const person of people) {
-    const { character, col, row, spec, islandIndex, personIndex } = person;
+    const { character, col, row, spec, offset, motionSeed } = person;
     const position = getCharacterPos(
       spec,
       layout,
       getTilePos(col, row),
-      islandIndex,
-      personIndex,
+      offset,
     );
     const size = getSpriteSize(spec, layout);
-    const seed = islandIndex * 97 + personIndex * 37;
-    const cycle = 2.2 + seededUnit(seed, 1) * 2.4;
-    const phase = ((time + seededUnit(seed, 2) * cycle) % cycle) / cycle;
+    const cycle = 2.2 + seededUnit(motionSeed, 1) * 2.4;
+    const phase = ((time + seededUnit(motionSeed, 2) * cycle) % cycle) / cycle;
 
     if (phase < 0.45) {
       character.pos.x = position.x;
@@ -121,10 +120,10 @@ function animatePopulation(people, layout, getTilePos, time) {
       continue;
     }
 
-    const wave = Math.sin((time * (2.4 + seededUnit(seed, 3) * 1.6) + seed) * Math.PI * 2);
+    const wave = Math.sin((time * (2.4 + seededUnit(motionSeed, 3) * 1.6) + motionSeed) * Math.PI * 2);
     const hop = Math.max(0, wave) * layout.renderScale * 0.9;
-    const sway = Math.sin(time * 2 + seed) * layout.renderScale * 0.45;
-    const pulse = 1 + Math.sin(time * 5 + seed) * 0.025;
+    const sway = Math.sin(time * 2 + motionSeed) * layout.renderScale * 0.45;
+    const pulse = 1 + Math.sin(time * 5 + motionSeed) * 0.025;
 
     character.width = size.width * (2 - pulse);
     character.height = size.height * pulse;
@@ -134,13 +133,12 @@ function animatePopulation(people, layout, getTilePos, time) {
 }
 
 function resetCharacter(person, layout, getTilePos) {
-  const { character, col, row, spec, islandIndex, personIndex } = person;
+  const { character, col, row, spec, offset } = person;
   const position = getCharacterPos(
     spec,
     layout,
     getTilePos(col, row),
-    islandIndex,
-    personIndex,
+    offset,
   );
 
   character.pos.x = position.x;
@@ -148,16 +146,10 @@ function resetCharacter(person, layout, getTilePos) {
   setSpriteSize(character, spec, layout);
 }
 
-function pickPopulationTile(tiles, islandIndex, personIndex) {
+function pickPopulationTile(tiles) {
   if (tiles.length === 0) return null;
 
-  return tiles[seededIndex(islandIndex, personIndex, 0, tiles.length)];
-}
-
-function seededIndex(islandIndex, personIndex, attempt, length) {
-  const seed = (islandIndex + 1) * 73856093 + (personIndex + 1) * 19349663 + attempt * 83492791;
-
-  return Math.abs(seed) % length;
+  return tiles[Math.floor(Math.random() * tiles.length)];
 }
 
 function seededUnit(seed, salt) {
@@ -166,29 +158,35 @@ function seededUnit(seed, salt) {
   return value - Math.floor(value);
 }
 
-function pickPopulationSpec(islandIndex, personIndex) {
-  const index = seededIndex(islandIndex, personIndex, 0, populationSpecs.length);
+function pickPopulationSpec() {
+  const index = Math.floor(Math.random() * populationSpecs.length);
 
   return populationSpecs[index];
 }
 
-function getCharacterPos(spec, layout, tilePos, islandIndex, personIndex) {
+function getCharacterPos(spec, layout, tilePos, offset) {
   const { width, height } = getSpriteSize(spec, layout);
-  const offset = getCharacterOffset(layout, islandIndex, personIndex);
+  const positionOffset = getCharacterOffset(layout, offset);
 
   return {
-    x: tilePos.x + (layout.cellSize - width) / 2 + offset.x,
-    y: tilePos.y + layout.cellSize - height + offset.y,
+    x: tilePos.x + (layout.cellSize - width) / 2 + positionOffset.x,
+    y: tilePos.y + layout.cellSize - height + positionOffset.y,
   };
 }
 
-function getCharacterOffset(layout, islandIndex, personIndex) {
-  const seed = islandIndex * 97 + personIndex * 37;
+function pickCharacterOffset() {
+  return {
+    x: Math.random() - 0.5,
+    y: Math.random() - 0.5,
+  };
+}
+
+function getCharacterOffset(layout, offset) {
   const spread = layout.cellSize * 0.22;
 
   return {
-    x: (seededUnit(seed, 5) - 0.5) * spread,
-    y: (seededUnit(seed, 6) - 0.5) * spread * 0.55,
+    x: offset.x * spread,
+    y: offset.y * spread * 0.55,
   };
 }
 
