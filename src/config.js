@@ -12,19 +12,3 @@ export const islandSizes = {
   island4: 6,
   island5: 1,
 };
-
-export const islandOrigins = {
-  island1: { col: 4, row: 3 },
-  island2: { col: 18, row: 4 },
-  island3: { col: 16, row: 8 },
-  island4: { col: 6, row: 9 },
-  island5: { col: 10, row: 10 },
-};
-
-export const islandAspects = {
-  island1: 1.35,
-  island2: 1.25,
-  island3: 1.05,
-  island4: 1.15,
-  island5: 1,
-};
