@@ -214,15 +214,23 @@ body.is-starting canvas {
 }
 
 @media (max-width: 520px) {
+  .start-screen {
+    align-items: start;
+    min-height: 100dvh;
+    overflow-y: auto;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+  }
+
   .start-card {
     width: min(420px, calc(100vw - 32px));
-    gap: 18px;
-    padding: 26px;
+    gap: 15px;
+    margin: min(10dvh, 56px) 0 24px;
+    padding: 22px;
     border-radius: 24px;
   }
 
   .start-card h1 {
-    font-size: clamp(2rem, 12vw, 3.2rem);
+    font-size: clamp(1.85rem, 10vw, 2.85rem);
   }
 
   .name-field input {

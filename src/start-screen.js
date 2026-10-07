@@ -23,7 +23,7 @@ export function showStartScreen(onStart) {
   const status = overlay.querySelector(".start-status");
   let pending = false;
 
-  input.focus();
+  focusInputWhenSafe(input);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -47,7 +47,7 @@ export function showStartScreen(onStart) {
       pending = false;
       button.disabled = false;
       input.disabled = false;
-      input.focus();
+      focusInputWhenSafe(input);
 
       return;
     }
@@ -55,4 +55,10 @@ export function showStartScreen(onStart) {
     document.body.classList.remove("is-starting");
     overlay.remove();
   });
+}
+
+function focusInputWhenSafe(input) {
+  if (globalThis.matchMedia?.("(pointer: coarse)").matches) return;
+
+  input.focus();
 }
