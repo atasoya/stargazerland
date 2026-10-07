@@ -224,4 +224,8 @@ body.is-starting canvas {
   .start-card h1 {
     font-size: clamp(2rem, 12vw, 3.2rem);
   }
+
+  .name-field input {
+    font-size: 16px;
+  }
 }
