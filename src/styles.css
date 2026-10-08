@@ -222,18 +222,45 @@ body.is-starting canvas {
   }
 
   .start-card {
-    width: min(420px, calc(100vw - 32px));
-    gap: 15px;
-    margin: min(10dvh, 56px) 0 24px;
-    padding: 22px;
-    border-radius: 24px;
+    width: min(360px, calc(100vw - 28px));
+    max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    gap: clamp(10px, 2.4dvh, 14px);
+    margin: min(5dvh, 28px) 0 18px;
+    padding: clamp(16px, 4.2vw, 20px);
+    border-radius: 20px;
+    overflow-y: auto;
+  }
+
+  .start-kicker {
+    font-size: 0.64rem;
   }
 
   .start-card h1 {
-    font-size: clamp(1.85rem, 10vw, 2.85rem);
+    max-width: 14ch;
+    font-size: clamp(1.55rem, 8.6vw, 2.35rem);
+    line-height: 1;
+  }
+
+  .name-field {
+    gap: 7px;
+  }
+
+  .name-field span {
+    font-size: 0.72rem;
   }
 
   .name-field input {
+    border-radius: 14px;
     font-size: 16px;
+    padding: 12px 13px;
+  }
+
+  .start-card button {
+    padding: 13px 16px;
+    font-size: 0.88rem;
+  }
+
+  .start-status {
+    font-size: 0.82rem;
   }
 }
