@@ -1,27 +1,13 @@
-# Folder structure
+# Stargazerland
 
-- `src` - source code for your kaplay project
-- `dist` - distribution folder, contains your index.html, built js bundle and static assets
+Your GitHub islands with cute animals!
 
+![Banner](public/stargazerland-banner.png)
 
-## Development
+## What Is This?
 
-```sh
-$ npm run dev
-```
+Islands represent your GitHub repositories that have at least one star, and animals represent their stargazers. The more stars a repository has, the bigger its island and the larger its animal population.
 
-will start a dev server at http://localhost:8000
+## Showcase
 
-## Distribution
-
-```sh
-$ npm run build
-```
-
-will build your js files into `dist/`
-
-```sh
-$ npm run zip
-```
-
-will build your game and package into a .zip file, you can upload to your server or itch.io / newground etc.
+![Demo](public/showcase.png)
