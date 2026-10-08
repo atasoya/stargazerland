@@ -2,7 +2,7 @@ import kaplay from "kaplay";
 import "./styles.css";
 import { loadAssets } from "./assets.js";
 import { previewIslandSizes } from "./config.js";
-import { createGameControls, shareCanvasImage } from "./game-controls.js";
+import { createGameControls, downloadCanvasImage } from "./game-controls.js";
 import { fetchRepoIslandSizes } from "./github.js";
 import { generateIslandWorld } from "./islands.js";
 import { showStartScreen } from "./start-screen.js";
@@ -15,21 +15,24 @@ const k = kaplay({
 loadAssets(k);
 
 let currentWorld = null;
+let currentShareMetadata = null;
 
 const controls = createGameControls({
   onReset: showStart,
-  onShare: shareCanvasImage,
+  onDownload: () => downloadCanvasImage(currentShareMetadata),
 });
 
 showStart();
 
 function showStart() {
   controls.hide();
+  currentShareMetadata = null;
   replaceWorld(generateResponsiveWorld(previewIslandSizes));
 
   showStartScreen(async (githubUsername) => {
     const repoIslandSizes = await fetchRepoIslandSizes(githubUsername);
 
+    currentShareMetadata = getShareMetadata(githubUsername, repoIslandSizes);
     replaceWorld(generateResponsiveWorld(repoIslandSizes));
     controls.show();
   });
@@ -48,4 +51,14 @@ function generateResponsiveWorld(sizesByIsland) {
 
 function isPortraitViewport() {
   return globalThis.innerHeight > globalThis.innerWidth;
+}
+
+function getShareMetadata(username, repoIslandSizes) {
+  const repos = Object.values(repoIslandSizes);
+
+  return {
+    username,
+    repoCount: repos.length,
+    totalStars: repos.reduce((sum, repo) => sum + repo.population, 0),
+  };
 }
