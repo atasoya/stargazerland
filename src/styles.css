@@ -9,6 +9,7 @@ body {
   min-height: 100%;
   overflow: hidden;
   background: oklch(84% 0.055 173);
+  touch-action: manipulation;
 }
 
 canvas {
